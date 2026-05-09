@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "Prompt": {
+      "title": "AI Prompt",
+      "description": "An AI image generation prompt with an associated image.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "prompt": { "type": "string" },
+        "imageUrl": { "type": "string", "format": "uri" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likesCount": { "type": "integer" }
+      },
+      "required": ["title", "prompt", "imageUrl", "category", "createdAt"]
+    },
+    "Shayari": {
+      "title": "Shayari",
+      "description": "A poetic shayari text.",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likesCount": { "type": "integer" }
+      },
+      "required": ["content", "category", "createdAt"]
+    },
+    "Like": {
+      "title": "Like",
+      "description": "Represents a user's like on a prompt or shayari.",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string" },
+        "type": { "type": "string", "enum": ["prompt", "shayari"] },
+        "addedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["itemId", "type", "addedAt"]
+    }
+  },
+  "firestore": {
+    "prompts": {
+      "schema": "Prompt",
+      "description": "Collection of AI image prompts"
+    },
+    "shayari": {
+      "schema": "Shayari",
+      "description": "Collection of shayari"
+    },
+    "users/{userId}/likes": {
+      "schema": "Like",
+      "description": "User's liked items"
+    }
+  }
+}
