@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Quote, Heart, User, Search, Share2, Copy, Trash2, Moon, Sun, Plus, X, MessageCircle, Github, Instagram, Send, Youtube, Sparkles, Wand2, Eye, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Quote, Heart, User, Search, Share2, Copy, Trash2, Moon, Sun, Plus, X, MessageCircle, Github, Instagram, Send, Youtube, Sparkles, Wand2, Eye, ArrowLeft, ChevronLeft, ChevronRight, Flame, Zap, Cpu, Leaf, Tv, Camera, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, db, loginWithGoogle, logout } from './lib/firebase';
 import { GoogleGenAI } from "@google/genai";
@@ -286,7 +286,16 @@ function HomePage({ prompts, likes, user, search }: { prompts: AIPrompt[], likes
     }
   }, [selectedPrompt]);
 
-  const categories = ['Trending', 'All', 'Fantasy', 'Cyberpunk', 'Nature', 'Anime', 'Realistic', 'Abstract'];
+  const categories = [
+    { name: 'Trending', icon: <Flame size={14} /> },
+    { name: 'All', icon: <Zap size={14} /> },
+    { name: 'Fantasy', icon: <Wand2 size={14} /> },
+    { name: 'Cyberpunk', icon: <Cpu size={14} /> },
+    { name: 'Nature', icon: <Leaf size={14} /> },
+    { name: 'Anime', icon: <Tv size={14} /> },
+    { name: 'Realistic', icon: <Camera size={14} /> },
+    { name: 'Abstract', icon: <Palette size={14} /> }
+  ];
   
   const filtered = prompts
     .filter(p => {
@@ -312,22 +321,30 @@ function HomePage({ prompts, likes, user, search }: { prompts: AIPrompt[], likes
       <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
         {categories.map(cat => (
           <button
-            key={cat}
-            onClick={() => setCategory(cat)}
+            key={cat.name}
+            onClick={() => setCategory(cat.name)}
             className={cn(
-              "px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all",
-              category === cat 
-                ? "bg-zinc-800 text-white" 
-                : "bg-zinc-900/50 text-gray-500 border border-white/5"
+              "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2",
+              category === cat.name 
+                ? "bg-primary text-zinc-950 shadow-lg shadow-primary/20" 
+                : "bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 text-zinc-500"
             )}
           >
-            {cat}
+            {cat.icon}
+            {cat.name}
           </button>
         ))}
       </div>
 
-      {/* Feed */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Feed Title */}
+      <div className="flex items-center justify-between px-1">
+        <h2 className="text-lg font-black font-display text-zinc-900 dark:text-white uppercase tracking-tight">
+          Recent <span className="text-primary italic">Uploads</span>
+        </h2>
+      </div>
+
+      {/* Feed - Reverted to 2 Columns */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-7">
         {filtered.map(prompt => (
           <PromptCard 
             key={prompt.id} 
@@ -548,16 +565,28 @@ function PromptCard({ prompt, liked, onOpen, user }: { prompt: AIPrompt, liked: 
     e.stopPropagation();
     if (!user) return loginWithGoogle();
     
-    if (liked) {
-      const q = query(collection(db, 'users', user.uid, 'likes'), where('itemId', '==', prompt.id));
-      const snap = await getDocs(q);
-      snap.forEach(d => deleteDoc(d.ref));
-    } else {
-      await addDoc(collection(db, 'users', user.uid, 'likes'), {
-        itemId: prompt.id,
-        type: 'prompt',
-        addedAt: serverTimestamp()
-      });
+    try {
+      const updateRef = doc(db, 'prompts', prompt.id);
+      if (liked) {
+        const q = query(collection(db, 'users', user.uid, 'likes'), where('itemId', '==', prompt.id));
+        const snap = await getDocs(q);
+        const deletePromises = snap.docs.map(d => deleteDoc(d.ref));
+        await Promise.all([
+          ...deletePromises,
+          updateDoc(updateRef, { likesCount: increment(-1) })
+        ]);
+      } else {
+        await Promise.all([
+          addDoc(collection(db, 'users', user.uid, 'likes'), {
+            itemId: prompt.id,
+            type: 'prompt',
+            addedAt: serverTimestamp()
+          }),
+          updateDoc(updateRef, { likesCount: increment(1) })
+        ]);
+      }
+    } catch (err) {
+      console.error("Error toggling like:", err);
     }
   };
 
@@ -566,9 +595,9 @@ function PromptCard({ prompt, liked, onOpen, user }: { prompt: AIPrompt, liked: 
       layout
       whileTap={{ scale: 0.98 }}
       onClick={onOpen}
-      className="bg-zinc-900 rounded-[24px] overflow-hidden cursor-pointer group relative shadow-2xl border border-white/5"
+      className="flex flex-col gap-2 group cursor-pointer"
     >
-      <div className="aspect-[3/4] relative overflow-hidden">
+      <div className="aspect-[3/4.2] relative overflow-hidden rounded-[32px] bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 shadow-2xl">
         <img 
           src={prompt.imageUrl} 
           alt={prompt.title} 
@@ -576,26 +605,28 @@ function PromptCard({ prompt, liked, onOpen, user }: { prompt: AIPrompt, liked: 
           referrerPolicy="no-referrer"
         />
         
-        {/* Overlay Badges */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2.5 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
-          <Eye size={12} className="text-white" />
-          <span className="text-[10px] font-bold text-white tracking-tight">{prompt.viewsCount || 0}</span>
-        </div>
-
-        <div className="absolute top-2 left-[52px] flex items-center gap-1.5 px-2.5 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
-          <Copy size={10} className="text-white" />
-          <span className="text-[10px] font-bold text-white tracking-tight">{prompt.copiesCount || 0}</span>
+        {/* Floating Badges */}
+        <div className="absolute top-3 left-3 px-2.5 py-1 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 flex items-center gap-1.5 translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
+          <Eye size={12} className="text-primary" />
+          <span className="text-[10px] font-black text-white tracking-widest">{prompt.viewsCount || 0}</span>
         </div>
 
         <button 
           onClick={toggleLike}
-          className="absolute top-2 right-2 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-colors"
+          className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-colors shadow-lg"
         >
           <Heart size={14} className={cn(liked ? "fill-primary text-primary" : "text-white")} />
         </button>
+      </div>
 
-        <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-          <p className="text-[11px] font-bold text-white leading-tight line-clamp-1 opacity-90">{prompt.title}</p>
+      <div className="px-1.5 space-y-1 mt-1">
+        <h3 className="text-[13px] font-black text-zinc-900 dark:text-white line-clamp-1 truncate uppercase tracking-tight font-display group-hover:text-primary transition-colors flex items-center gap-1">{prompt.title}</h3>
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-widest opacity-60 leading-none">{prompt.category}</span>
+          <div className="flex items-center gap-1 text-[9px] font-black text-primary/80 leading-none">
+            <Copy size={10} />
+            <span>{prompt.copiesCount || 0}</span>
+          </div>
         </div>
       </div>
     </motion.div>
