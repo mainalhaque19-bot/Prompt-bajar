@@ -27,8 +27,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm install -g npm@latest
-          npm install --legacy-peer-deps
+          rm -f package-lock.json
+          npm install --force
 
       - name: Build Web App
         run: npm run build
