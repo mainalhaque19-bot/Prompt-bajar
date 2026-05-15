@@ -33,8 +33,7 @@ service cloud.firestore {
         && request.resource.data.imageUrl is string
         && request.resource.data.category is string
         && request.resource.data.createdAt == request.time;
-      allow update: if isSignedIn()
-        && (isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'viewsCount', 'copiesCount']));
+      allow update: if isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'viewsCount', 'copiesCount']);
     }
 
     // Shayari
@@ -45,8 +44,7 @@ service cloud.firestore {
         && request.resource.data.content is string
         && request.resource.data.category is string
         && request.resource.data.createdAt == request.time;
-      allow update: if isSignedIn()
-        && (isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount']));
+      allow update: if isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'viewsCount', 'copiesCount']);
     }
 
     // User Likes

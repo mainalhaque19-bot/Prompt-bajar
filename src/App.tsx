@@ -6,6 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, getDocs, where, limit, orderBy, updateDoc, increment } from 'firebase/firestore';
 import { AIPrompt, Shayari, Like } from './types';
+import { UnityAds } from 'capacitor-unity-ads';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -87,6 +88,8 @@ export default function App() {
   const [likes, setLikes] = useState<Like[]>([]);
 
   useEffect(() => {
+    UnityAds.initialize({ gameId: '6114061', testMode: false }).catch(err => console.warn('UnityAds Init Error:', err));
+
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       setUser(u);
     });
@@ -703,12 +706,26 @@ function PromptDetailModal({ prompt, liked, onClose, user, allPrompts, onSelect 
   const [showPrompt, setShowPrompt] = useState(false);
   const relatedPrompts = allPrompts.filter(p => p.id !== prompt.id && p.category === prompt.category).slice(0, 4);
 
-  const handleGenerateClick = () => {
+  useEffect(() => {
+    UnityAds.loadInterstitial({ placementId: 'Interstitial_Android' }).catch(() => {});
+  }, []);
+
+  const handleGenerateClick = async () => {
     setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
-      setShowPrompt(true);
-    }, 1500);
+    
+    try {
+      const { loaded } = await UnityAds.isInterstitialLoaded();
+      if (loaded) {
+        await UnityAds.showInterstitial();
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    } catch (e) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    setIsGenerating(false);
+    setShowPrompt(true);
   };
 
   return (
